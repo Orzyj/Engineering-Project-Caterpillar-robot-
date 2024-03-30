@@ -1,0 +1,13 @@
+{
+    "movements": {
+        "UP": false,
+        "DOWN": false,
+        "LEFT": false,
+        "RIGHT": false,
+        "POWER": false
+    },
+
+    "camera": {
+        "POWER": false
+    }
+}

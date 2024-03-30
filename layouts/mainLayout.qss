@@ -1,0 +1,138 @@
+/*= Style for Main Window widget START 
+  ======================================*/
+  #MainWindow {
+    background-color: #fff;
+  }
+/*= END
+  ======================================*
+
+  /*= Style button to change meny START
+  ======================================*/
+  #btnChangeMenu {
+    padding: 5px;
+    border: none;
+    width: 30px;
+    height: 30px;
+  }
+/*= END
+  ======================================*
+
+    /*= Style button to change meny START
+  ======================================*/
+  #widget {
+    background-color: #f9fafd;
+  }
+/*= END
+  ======================================*/
+
+
+/*= Style button to short icon menu START
+ ======================================*/
+  
+  /* style for widget */
+  #icon_only_widget{
+    background-color: #313a46;
+    width: 50px;
+  }
+
+  /* style for QPushButton and QLabel */
+  #icon_only_widget QPushButton, QLabel {
+    height: 50px;
+    border: none;
+  }
+
+  #icon_only_widget QPushButton:hover {
+    background-color: rgba(86, 101, 115, 0.5)
+  }
+
+  #icon_only_widget QLabel {
+    padding: 5px;
+  }
+/*= END
+ ======================================*/
+
+/*= Style button to short long menu START
+ ======================================*/
+ 
+  #full_menu_widget {
+    background-color: #313a46;
+  }
+
+  #full_menu_widget QPushButton {
+    border: none;
+    border-radius: 3px;
+    text-align: left;
+    padding: 8px 0 8px 15px;
+    color: #788596;
+    font-size: 18px;
+  }
+
+  #full_menu_widget QPushButton:hover {
+    background-color: rgba(86, 101, 115, 0.5)
+  }
+
+  #full_menu_widget QPushButton:checked {
+    color: #fff;
+    font-weight: bold;
+  }
+
+  #full_menu_widget QLabel#label_2 {
+    padding: 5px;
+    font-size: 18px;
+    color: #fff;
+    font-weight: bold;
+  }
+
+  #full_menu_widget QLabel#label_3 {
+    padding: 10px;
+    font-size: 18px;
+    color: #fff;
+    font-weight: bold;
+  }
+ /*= END
+ ======================================*/
+
+
+/*= Style button search START
+ ======================================*/
+
+  #btnSearch {
+    border: none;
+    padding: 5px;
+    margin: 5px;
+ }
+
+ #btnSearch:hover{
+  color: #ff566170;
+ }
+
+/*= END
+ ======================================*/
+
+/*= Style line edit search START
+ ======================================*/
+
+ #leSearch {
+  border: none;
+  padding: 5px 10px;
+  border-radius: 10px;
+  border: 1px solid #000;
+ }
+
+ #leSearch:focus {
+  background-color: #70b9fe;
+ }
+
+/*= END
+ ======================================*/
+  
+
+/*= Style button settings
+ ======================================*/
+
+  #btnSettings {
+    border: none;
+  }
+ 
+/*= END
+ ======================================*/
