@@ -48,28 +48,7 @@ class MainWindow(QMainWindow):
             self.__json_data["movements"]["LEFT"] = False
 
     def __onSearchButtonClicked(self) -> None :
-        self.ui.stackedWidget.setCurrentIndex(5)
-        searchText: str = self.ui.leSearch.text().strip()
-
-        if searchText:
-            for index in range(self.ui.stackedWidget.count()):
-                currentWidget = self.ui.stackedWidget.widget(index)
-                pass  #dokończyć wyszukiwanie
-
-        if len(searchText) == 0:
-            msgBox: QMessageBox = QMessageBox()
-            style: QFile = QFile("layouts/msgBoxLayout.qss")
-            streamStyle: QTextStream = None
-
-            msgBox.setWindowTitle("Informacja")
-            msgBox.setText("Brak tekstu w polu wyszukiwania!")
-            msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
-            
-            if style.open(QFile.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):
-                streamStyle: QTextStream = QTextStream(style)
-                msgBox.setStyleSheet(streamStyle.readAll())
-
-            msgBox.exec()
+        raise NotImplemented("Not implemented code")
 
     def __onChangePages(self) -> None:
         sender: QPushButton = self.sender()
