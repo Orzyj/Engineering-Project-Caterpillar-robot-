@@ -41,10 +41,10 @@ class SettingsDialog(QDialog):
             self.__ip = ip
             self.__port = int(port)
             self.__status = True
-            self.accept() 
-        
         else: 
             self.__status = False
+            
+        self.accept() 
 
     def getIpAddress(self) -> str:
         return self.__ip

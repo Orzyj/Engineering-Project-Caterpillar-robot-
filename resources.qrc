@@ -290,7 +290,5 @@
   </qresource>
   <qresource prefix="images">
     <file>images/ip.png</file>
-    <file>images/port.png</file>
-    <file>images/rasberry.png</file>
   </qresource>
 </RCC>
