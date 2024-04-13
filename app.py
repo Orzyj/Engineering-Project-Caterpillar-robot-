@@ -1,68 +1,33 @@
-from PyQt6.QtWidgets import QMainWindow, QApplication, QMessageBox, QPushButton, QDialog, QVBoxLayout, QHBoxLayout, QLabel
-from PyQt6.QtCore import Qt, QFile, QTextStream,QUrl
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtGui import QCloseEvent
+from PyQt6.QtWidgets import QMainWindow, QApplication, QMessageBox, QPushButton, QDialog
+from PyQt6.QtCore import Qt, QFile, QTextStream
 from overrides import override
 from interface_ui import *
-from urlDialog import urlDialog
+from CameraLayout import *
 from settingsDialog import SettingsDialog
 import sys
 import json
+import threading
+import socket
+import json
 
-class CameraLayout(QVBoxLayout):
-    def __init__(self, ip: str, port: int):
+class DataSenderThread(threading.Thread):
+    def __init__(self, json_data, address, port):
         super().__init__()
-        self.__ip: str = ip
-        self.__port: int = port
-        buttonLayout: QHBoxLayout = QHBoxLayout()
-        self.__btnReload: QPushButton = QPushButton("Odśwież")
-        self.__btnChangeUrl: QPushButton = QPushButton("Zmień źródło")
-        self.__urlText: str = "http://" + self.__ip + ":" + str(self.__port) + "/video_feed"
-        self.__url: QUrl = QUrl(self.__urlText)
-        self.__urlLabel: QLabel = QLabel(self.__urlText)
+        self.json_data = json_data
+        self.address = address
+        self.port = port
 
-        buttonLayout.addWidget(self.__btnReload)
-        buttonLayout.addWidget(self.__btnChangeUrl)
-        buttonLayout.addWidget(self.__urlLabel)
-        buttonLayout.addStretch()
-
-        webEngineLayout = QVBoxLayout()
-        self.__webEngineView: QWebEngineView = QWebEngineView()
-        webEngineLayout.addWidget(self.__webEngineView)
-        webEngineLayout.setContentsMargins(0, 0, 0, 0) 
-
-        mainLayout = QVBoxLayout()
-        mainLayout.addLayout(buttonLayout)
-        mainLayout.addLayout(webEngineLayout)
-        mainLayout.setContentsMargins(0, 0, 0, 0) 
-
-        self.addLayout(mainLayout)
-        self.setAlignment(Qt.AlignmentFlag.AlignTop) 
-        self.__initBaseConfiguration()
-
-        self.__loadUrl()
-
-    def __loadUrl(self) -> None:
-        self.__webEngineView.load(self.__url)
-
-    def __reloadView(self) -> None:
-        self.__webEngineView.reload()
-
-    def __initBaseConfiguration(self) -> None:
-        self.__btnReload.clicked.connect(lambda: self.__reloadView())
-        self.__btnChangeUrl.clicked.connect(lambda: self.__setUrl())
-
-    def __setUrl(self) -> None:
-        dialog: urlDialog = urlDialog(self.__urlText)
-        result: QDialog.DialogCode = dialog.exec()
-        status: bool = dialog.getStatus()
-
-        if result == QDialog.DialogCode.Accepted:
-            if status:
-                self.__url = dialog.getUrl()
-                self.__urlText = dialog.getTextUrl()
-                self.__urlLabel.setText(self.__urlText)
-                self.__loadUrl()
-                self.__reloadView()
+    @override()
+    def run(self) -> None:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.connect((self.address, self.port))
+                json_string = json.dumps(self.json_data)
+                sock.sendall(json_string.encode("utf-8"))
+                print(f"Wysłano\n{json_string}")
+        except Exception as e:
+            print("Error:", e)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -70,6 +35,8 @@ class MainWindow(QMainWindow):
         self.__address_ip_rasberry: str = "192.168.1.39"
         self.__port: int = 5000
         self.__json_data: json = json.load(open("resources/settings.json", 'r'))
+        self.__pressed_keys: set = set()
+        self.__sender_thread: DataSenderThread = DataSenderThread(self.__json_data, self.__address_ip_rasberry, 6000)
 
         self.ui: Ui_MainWindow = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -78,37 +45,67 @@ class MainWindow(QMainWindow):
         self.__settingConnections()
 
     @override()
-    def keyPressEvent(self, event):
-        key = event.key()
+    def keyPressEvent(self, event) -> None:
+        key: Qt.Key = event.key()
         
         if key == Qt.Key.Key_W:
-            self.__json_data["movements"]["UP"] = True
+            self.__pressed_keys.add(Qt.Key.Key_W)
         elif key == Qt.Key.Key_S:
-            self.__json_data["movements"]["DOWN"] = True
+            self.__pressed_keys.add(Qt.Key.Key_S)
         elif key == Qt.Key.Key_D:
-            self.__json_data["movements"]["RIGHT"] = True
+            self.__pressed_keys.add(Qt.Key.Key_D)
         elif key == Qt.Key.Key_A:
-            self.__json_data["movements"]["LEFT"] = True
+            self.__pressed_keys.add(Qt.Key.Key_A)
         elif key == Qt.Key.Key_Tab:
             self.ui.icon_only_widget.setVisible(not self.ui.icon_only_widget.isVisible())
             self.ui.full_menu_widget.setHidden(not self.ui.full_menu_widget.isHidden())
 
+        self.update_movements()
+
     @override()
-    def keyReleaseEvent(self, event):
-        key = event.key()
-        
-        if key == Qt.Key.Key_W:
-            self.__json_data["movements"]["UP"] = False
-        elif key == Qt.Key.Key_S:
+    def keyReleaseEvent(self, event) -> None:
+        key: Qt.Key = event.key()
+
+        if key in self.__pressed_keys:
+            self.__pressed_keys.remove(key)
+
+        self.update_movements() 
+
+    @override()
+    def closeEvent(self, a0: QCloseEvent | None) -> None:
+        return super().closeEvent(a0)
+
+    def send_data_to_server(self):
+        if not self.__sender_thread.is_alive():
+            self.__sender_thread = DataSenderThread(self.__json_data, self.__address_ip_rasberry, 6000)
+            self.__sender_thread.start()
+
+    def update_movements(self) -> None:
+        for key in self.__pressed_keys:
+            self.__json_data["movements"]["UP"] = (True if key == Qt.Key.Key_W else False) 
+            self.__json_data["movements"]["DOWN"] = (True if key == Qt.Key.Key_S else False) 
+            self.__json_data["movements"]["RIGHT"] = (True if key == Qt.Key.Key_D else False) 
+            self.__json_data["movements"]["LEFT"] = (True if key == Qt.Key.Key_A else False) 
+
+        if not any(self.__pressed_keys):
+            self.__json_data["movements"]["UP"] = False 
             self.__json_data["movements"]["DOWN"] = False
-        elif key == Qt.Key.Key_D:
             self.__json_data["movements"]["RIGHT"] = False
-        elif key == Qt.Key.Key_A:
             self.__json_data["movements"]["LEFT"] = False
+
+        self.send_data_to_server() 
+
+    def __toggleCameraPowerState(self) -> None:
+        state: bool = self.ui.chkBoxCameraEnable.isChecked()
+        self.__json_data["camera"]["POWER"] = state
 
     def __initCameraLayout(self) -> None:
         cameraLayout: CameraLayout = CameraLayout(self.__address_ip_rasberry, self.__port)
         self.ui.cameraGroupBox.setLayout(cameraLayout)
+
+    def __onChangePowerConsumtion(self) -> None:
+        value: int = self.ui.hsEnginePowerConsumtion.value()
+        self.__json_data["movements"]["POWER"] = value
 
     def __onSearchButtonClicked(self) -> None :
         raise NotImplemented("Not implemented code")
@@ -137,11 +134,22 @@ class MainWindow(QMainWindow):
         self.ui.lPort.setText(str(self.__port))
 
     def __settingConnections(self) -> None:
-        self.ui.btnExit1.clicked.connect(lambda: QApplication.quit())
-        self.ui.btnExit2.clicked.connect(lambda: QApplication.quit())
-        self.ui.btnSearch.clicked.connect(lambda: self.__onSearchButtonClicked())
-        self.ui.btnChangeSettings.clicked.connect(lambda: self.__onChangeSettings())
-        self.ui.btnSettings.clicked.connect(lambda: self.__onChangeSettings())
+        self.ui.btnExit1.clicked.connect(QApplication.quit)
+        self.ui.btnExit2.clicked.connect(QApplication.quit)
+        self.ui.btnSearch.clicked.connect(self.__onSearchButtonClicked)
+        self.ui.btnChangeSettings.clicked.connect(self.__onChangeSettings)
+        self.ui.btnSettings.clicked.connect(self.__onChangeSettings)
+
+        self.ui.btnForward.pressed.connect(self.__onChangeDirection)
+        self.ui.btnRight.pressed.connect(self.__onChangeDirection)
+        self.ui.btnBackward.pressed.connect(self.__onChangeDirection)
+        self.ui.btnLeft.pressed.connect(self.__onChangeDirection)
+        self.ui.btnForward.released.connect(self.__stopMovement)
+        self.ui.btnRight.released.connect(self.__stopMovement)
+        self.ui.btnBackward.released.connect(self.__stopMovement)
+        self.ui.btnLeft.released.connect(self.__stopMovement)
+        self.ui.chkBoxCameraEnable.stateChanged.connect(self.__toggleCameraPowerState)
+        self.ui.hsEnginePowerConsumtion.valueChanged.connect(self.__onChangePowerConsumtion)
 
         listOfButtons: list[QPushButton] = self.ui.icon_only_widget.findChildren(QPushButton)
         listOfButtonsLongMenu: list[QPushButton] = self.ui.full_menu_widget.findChildren(QPushButton)
@@ -163,6 +171,26 @@ class MainWindow(QMainWindow):
         self.ui.lAdressIP.setText(self.__address_ip_rasberry)
         self.ui.lPort.setText(str(self.__port))
 
+    def __onChangeDirection(self) -> None:
+        button: QPushButton = self.sender()
+
+        if button is self.ui.btnForward:
+            self.__json_data["movements"]["UP"] = True
+        elif button is self.ui.btnBackward:
+            self.__json_data["movements"]["DOWN"] = True
+        elif button is self.ui.btnRight:
+            self.__json_data["movements"]["RIGHT"] = True
+        elif button is self.ui.btnLeft:
+            self.__json_data["movements"]["LEFT"] = True
+
+        print(f"{self.__json_data}")
+        self.send_data_to_server()
+
+    def __stopMovement(self) -> None:
+        self.__json_data["movements"]["UP"] = False
+        self.__json_data["movements"]["DOWN"] = False
+        self.__json_data["movements"]["LEFT"] = False
+        self.__json_data["movements"]["RIGHT"] = False
     
 
 if __name__ == "__main__":

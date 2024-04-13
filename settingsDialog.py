@@ -22,7 +22,7 @@ class SettingsDialog(QDialog):
     def __chekPort(self, port: str) -> bool:
         try:
             portNumber: int = int(port)
-            return True if isinstance(portNumber, int) and 0 < portNumber <= portNumber else False
+            return True if isinstance(portNumber, int) and 0 < portNumber <= 65535 else False
         except ValueError:
             return False
         
